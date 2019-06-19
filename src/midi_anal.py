@@ -176,20 +176,14 @@ class MidiFile(mido.MidiFile):
         for track_num in range(len(roll)):
             track_img = roll[track_num]
             try:
+                max_val = -1
+                min_val = 128
+                for line in track_img:
+                    for val in line:
+                        max_val = max(max_val, val)
+                        min_val = min(min_val, val)
+                track_img[track_img > min_val] = max_val
                 plt.imsave('result_images/' + 'track' + str(track_num) + '.png', track_img, cmap=plt.get_cmap('gray'))
-                if track_num == 0:
-                    img = plt.imread('result_images/' + 'track' + str(track_num) + '.png')
-                    max_val = -1
-                    min_val = 128
-                    for line in track_img:
-                        for val in line:
-                            max_val = max(max_val, val)
-                            min_val = min(min_val, val)
-                    print(max_val, min_val)
-                    # print('original ----------------------')
-                    # print(track_img.shape)
-                    # print(track_img)
-                    image_to_roll(img, min_val, max_val)
                 print("image save complete")
             except:
                 print("can't save image")
@@ -303,9 +297,11 @@ if __name__ == "__main__":
 
     # get the np array of piano roll image
     roll = mid.get_roll()
-    ret_midi = roll_to_midi([roll[13], roll[7], roll[0], roll[1], roll[9]], 10, 240)
-    midi.write_midifile('result.mid', ret_midi)
-    # mid.draw_sessions(roll)
+    # ret_midi = roll_to_midi([roll[13], roll[7], roll[0], roll[1], roll[9]], 10, 240)
+    # bass_img = plt.imread('input_images/bass.png')
+    # ret_midi = roll_to_midi([roll[13], roll[7], roll[0], image_to_roll(bass_img, 0, 128), roll[9]], 10, 240)
+    # midi.write_midifile('result.mid', ret_midi)
+    mid.draw_sessions(roll)
     # draw piano roll by pyplot
     # mid.draw_roll()
 
