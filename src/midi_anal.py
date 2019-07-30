@@ -5,6 +5,7 @@ import matplotlib as mpl
 from matplotlib.colors import colorConverter
 import midi
 
+
 class MidiFile(mido.MidiFile):
 
     def __init__(self, filename):
@@ -56,7 +57,6 @@ class MidiFile(mido.MidiFile):
         # use a register array to save the state(program_change) for each channel
         timbre_register = [1 for x in range(16)]
 
-
         for idx, channel in enumerate(events):
             time_counter = 0
             volume = 100
@@ -78,28 +78,24 @@ class MidiFile(mido.MidiFile):
                     timbre_register[idx] = msg.program
                     # print("channel", idx, "pc", msg.program, "time", time_counter, "duration", msg.time)
 
-
-
                 if msg.type == "note_on":
                     # print("on ", msg.note, "time", time_counter, "duration", msg.time, "velocity", msg.velocity)
                     note_on_start_time = time_counter // sr
                     note_on_end_time = (time_counter + msg.time) // sr
                     intensity = volume * msg.velocity // 127
 
+                    # When a note_on event *ends* the note start to be play
+                    # Record end time of note_on event if there is no value in register
+                    # When note_off event happens, we fill in the color
 
-
-					# When a note_on event *ends* the note start to be play
-					# Record end time of note_on event if there is no value in register
-					# When note_off event happens, we fill in the color
                     if note_register[msg.note] == -1:
                         note_register[msg.note] = (note_on_end_time,intensity)
                     else:
-					# When note_on event happens again, we also fill in the color
+                        # When note_on event happens again, we also fill in the color
                         old_end_time = note_register[msg.note][0]
                         old_intensity = note_register[msg.note][1]
                         roll[idx, msg.note, old_end_time: note_on_end_time] = old_intensity
                         note_register[msg.note] = (note_on_end_time,intensity)
-
 
                 if msg.type == "note_off":
                     # print("off", msg.note, "time", time_counter, "duration", msg.time, "velocity", msg.velocity)
@@ -107,7 +103,7 @@ class MidiFile(mido.MidiFile):
                     note_off_end_time = (time_counter + msg.time) // sr
                     note_on_end_time = note_register[msg.note][0]
                     intensity = note_register[msg.note][1]
-					# fill in color
+                    # fill in color
                     roll[idx, msg.note, note_on_end_time:note_off_end_time] = intensity
 
                     note_register[msg.note] = -1  # reinitialize register
@@ -183,9 +179,10 @@ class MidiFile(mido.MidiFile):
         for track_num in range(len(roll)):
             track_img = roll[track_num]
             try:
-                plt.imsave('result_images/' + 'track' + str(track_num) + '.png', track_img)
+                plt.imsave('../result_images/' + '10track' + str(track_num) + '.png', track_img)
                 print("image save complete")
-            except:
+            except Exception as e:
+                print(e)
                 print("can't save image")
 
 
@@ -200,13 +197,19 @@ def extract_track(file):
     #         4 = drum -> track9
     #         5 = melody -> track13
     for idx, it in enumerate(pattern):
-        if idx == 1 :
+        if idx == 1:
             extracted.append(it)
 
-    midi.write_midifile("./result_midi/result_DLBIA.mid", extracted)
+    midi.write_midifile("../result_midi/result.mid", extracted)
+
+
 if __name__ == "__main__":
-    mid = MidiFile("./midi_files/DLBIA.mid")
-    track_ext = extract_track("./midi_files/DLBIA.mid")
+    mid = MidiFile("../input_midi/10.mid")
+    extract_track("../input_midi/10.mid")
+    pattern = midi.read_midifile("../input_midi/10.mid")
+    print(pattern)
+    # mid = MidiFile("../midi_files/DLBIA.mid")
+    # extract_track("../midi_files/DLBIA.mid")
     # mid = MidiFile("./result_midi/result_DLBIA.mid")
     # track_ext = extract_track("./result_midi/result_DLBIA.mid")
     # get the list of all events

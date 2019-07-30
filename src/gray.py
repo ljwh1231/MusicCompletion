@@ -1,0 +1,11 @@
+from PIL import Image
+bassImg = Image.open("../result_images/10bass.png").convert('LA')
+pianoImg = Image.open("../result_images/10piano.png").convert('LA')
+drumImg = Image.open("../result_images/10drum.png").convert('LA')
+melodyImg = Image.open("../result_images/10melody.png").convert('LA')
+guitarImg = Image.open("../result_images/10guitar.png").convert('LA')
+bassImg.save("../result_images_gray/10bass.png")
+pianoImg.save("../result_images_gray/10piano.png")
+drumImg.save("../result_images_gray/10dr um.png")
+melodyImg.save("../result_images_gray/10melody.png")
+guitarImg.save("../result_images_gray/10guitar.png")
