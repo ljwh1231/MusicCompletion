@@ -1,0 +1,18 @@
+import midi
+pattern = midi.Pattern()
+track = midi.Track()
+pattern.append(track)
+
+track.append(midi.ProgramChangeEvent(tick=0, channel=2, data=[5]))
+track.append(midi.NoteOnEvent(tick=0, channel=2, data=[80, 127]))
+track.append(midi.NoteOffEvent(tick=160, channel=2, data=[80, 127]))
+track.append(midi.NoteOnEvent(tick=0, channel=2, data=[80, 127]))
+track.append(midi.NoteOffEvent(tick=160, channel=2, data=[80, 127]))
+track.append(midi.NoteOnEvent(tick=0, channel=2, data=[80, 127]))
+track.append(midi.NoteOffEvent(tick=160, channel=2, data=[80, 127]))
+track.append(midi.NoteOnEvent(tick=0, channel=2, data=[80, 127]))
+track.append(midi.NoteOffEvent(tick=160, channel=2, data=[80, 127]))
+eot = midi.EndOfTrackEvent(tick=1)
+track.append(eot)
+print(pattern)
+midi.write_midifile("example.mid", pattern)

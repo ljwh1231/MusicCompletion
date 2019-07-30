@@ -7,9 +7,7 @@ import midi
 
 
 class MidiFile(mido.MidiFile):
-
     def __init__(self, filename):
-
         mido.MidiFile.__init__(self, filename)
         self.sr = 10
         self.meta = {}
@@ -31,12 +29,12 @@ class MidiFile(mido.MidiFile):
                     events[channel].append(msg)
                 except AttributeError:
                     try:
-                        if type(msg) != type(mido.UnknownMetaMessage):
+                        if not isinstance(msg, mido.UnknownMetaMessage):
                             self.meta[msg.type] = msg.dict()
                         else:
                             pass
                     except:
-                        print("error",type(msg))
+                        print("error", type(msg))
 
         return events
 
@@ -47,6 +45,7 @@ class MidiFile(mido.MidiFile):
         sr = self.sr
         # compute total length in tick unit
         length = self.get_total_ticks()
+
         # allocate memory to numpy array
         roll = np.zeros((16, 128, length // sr), dtype="int8")
         # print(roll.shape)
@@ -175,7 +174,6 @@ class MidiFile(mido.MidiFile):
         return max_ticks
 
     def draw_sessions(self, roll):
-        print(len(roll))
         for track_num in range(len(roll)):
             track_img = roll[track_num]
             try:
@@ -200,16 +198,93 @@ def extract_track(file):
         if idx == 1:
             extracted.append(it)
 
-    midi.write_midifile("../result_midi/result.mid", extracted)
+    midi.write_midifile("./result_midi/result_DLBIA.mid", extracted)
 
 
+def image_to_roll(img, min_val, max_val):
+    ret_img = np.array([[int(img[i][j][0] * (max_val - min_val) + min_val) for j in range(img.shape[1])]
+                        for i in range(img.shape[0])])
+    plt.imsave('result_images/temp.png', ret_img, cmap=plt.get_cmap('gray'))
+    return ret_img
+
+
+def roll_to_midi(rolls, tick_per_time_slice, resolution=120):
+    # melody is index 0
+    # guitar is index 1
+    # piano is index 2
+    # bass is index 3
+    # drum is index 4
+
+    result = midi.Pattern(resolution=resolution*100)
+    for i in range(5):
+        if i >= len(rolls):
+            continue
+
+        roll = rolls[i]
+        channel = i
+
+        # for drum
+        if channel == 4:
+            channel = 9
+
+        track = midi.Track()
+        if i == 0:
+            track.append(midi.ProgramChangeEvent(tick=0, data=[53], channel=channel))
+        elif i == 1:
+            track.append(midi.ProgramChangeEvent(tick=0, data=[29], channel=channel))
+        elif i == 2:
+            track.append(midi.ProgramChangeEvent(tick=0, data=[0], channel=channel))
+        elif i == 3:
+            track.append(midi.ProgramChangeEvent(tick=0, data=[34], channel=channel))
+        else:
+            track.append(midi.ProgramChangeEvent(tick=0, data=[1], channel=channel))
+
+        current_tick = 0
+        prev_intensity = [0 for _ in range(128)]
+        prev_tick = 0
+
+        for time_slice in range(roll.shape[1]):
+            for pitch in range(roll.shape[0]):
+                if roll[pitch][time_slice] != prev_intensity[pitch]:
+                    diff_tick = current_tick - prev_tick
+                    if roll[pitch][time_slice] == 0:
+                        track.append(midi.NoteOffEvent(tick=diff_tick,
+                                                       data=[pitch, prev_intensity[pitch]],
+                                                       channel=channel))
+                        prev_intensity[pitch] = 0
+                        prev_tick = current_tick
+                    else:
+                        if prev_intensity[pitch] == 0:
+                            track.append(midi.NoteOnEvent(tick=diff_tick,
+                                                          data=[pitch, roll[pitch][time_slice]],
+                                                          channel=channel))
+                            prev_intensity[pitch] = roll[pitch][time_slice]
+                            prev_tick = current_tick
+                        else:
+                            track.append(midi.NoteOffEvent(tick=diff_tick,
+                                                           data=[pitch, prev_intensity[pitch]],
+                                                           channel=channel))
+                            track.append(midi.NoteOnEvent(tick=diff_tick,
+                                                          data=[pitch, roll[pitch][time_slice]],
+                                                          channel=channel))
+                            prev_intensity[pitch] = roll[pitch][time_slice]
+                            prev_tick = current_tick
+                current_tick += tick_per_time_slice
+
+        track.append(midi.EndOfTrackEvent(tick=0, channel=channel))
+        # if i == 1:
+        result.append(track)
+    return result
+
+
+# DLBIA : 1 = piano -> track0
+#         2 = bass -> track1
+#         3 = guitar -> track7
+#         4 = drum -> track9
+#         5 = melody -> track13
 if __name__ == "__main__":
-    mid = MidiFile("../input_midi/10.mid")
-    extract_track("../input_midi/10.mid")
-    pattern = midi.read_midifile("../input_midi/10.mid")
-    print(pattern)
-    # mid = MidiFile("../midi_files/DLBIA.mid")
-    # extract_track("../midi_files/DLBIA.mid")
+    mid = MidiFile("./midi_files/DLBIA.mid")
+    extract_track("./midi_files/DLBIA.mid")
     # mid = MidiFile("./result_midi/result_DLBIA.mid")
     # track_ext = extract_track("./result_midi/result_DLBIA.mid")
     # get the list of all events
@@ -217,6 +292,10 @@ if __name__ == "__main__":
 
     # get the np array of piano roll image
     roll = mid.get_roll()
+    # ret_midi = roll_to_midi([roll[13], roll[7], roll[0], roll[1], roll[9]], 10, 240)
+    # bass_img = plt.imread('input_images/bass.png')
+    # ret_midi = roll_to_midi([roll[13], roll[7], roll[0], image_to_roll(bass_img, 0, 128), roll[9]], 10, 240)
+    # midi.write_midifile('result.mid', ret_midi)
     mid.draw_sessions(roll)
     # draw piano roll by pyplot
     # mid.draw_roll()
